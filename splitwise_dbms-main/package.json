@@ -1,0 +1,16 @@
+{
+  "name": "splitwise-dbms",
+  "version": "1.0.0",
+  "description": "Splitwise DBMS Project",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "splitwise",
+    "dbms",
+    "sqlite"
+  ],
+  "author": "Saketharaj",
+  "license": "ISC"
+}
