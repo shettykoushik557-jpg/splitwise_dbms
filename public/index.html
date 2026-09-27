@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splitwise DBMS Project Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">⇄</div>
+                <div class="logo-text">
+                    <h1>Splitwise<span>DBMS</span></h1>
+                    <p>Database Management System Operations Analyzer</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <span class="db-status-pill">
+                    <span class="status-indicator online"></span>
+                    SQLite Active
+                </span>
+                <button id="btn-view-schema" class="btn btn-secondary">📋 View Schema SQL</button>
+                <button id="btn-reset-db" class="btn btn-danger">⚡ Reset & Seed Database</button>
+            </div>
+        </header>
+
+        <!-- DASHBOARD GRID -->
+        <main class="dashboard-grid">
+            
+            <!-- LEFT PANEL: Entity Configuration -->
+            <section class="panel panel-left">
+                <div class="panel-header">
+                    <h2>📁 Core Entities (DDL & CRUD)</h2>
+                    <p>Manage basic tables: users, groups, and members</p>
+                </div>
+                
+                <div class="accordion">
+                    <!-- Users Section -->
+                    <div class="accordion-item card">
+                        <h3 class="card-title">👥 Users Table</h3>
+                        <form id="form-user" class="input-group">
+                            <input type="text" id="user-name" placeholder="Full Name" required>
+                            <input type="email" id="user-email" placeholder="Email Address" required>
+                            <button type="submit" class="btn btn-primary">Add User</button>
+                        </form>
+                        <div class="table-container-mini">
+                            <table id="table-users">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Groups Section -->
+                    <div class="accordion-item card">
+                        <h3 class="card-title">🏢 Groups Table</h3>
+                        <form id="form-group" class="input-group">
+                            <input type="text" id="group-name" placeholder="Group Name" required>
+                            <input type="text" id="group-desc" placeholder="Description (Optional)">
+                            <button type="submit" class="btn btn-primary">Add Group</button>
+                        </form>
+                        <div class="table-container-mini">
+                            <table id="table-groups">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Description</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Group Membership Section -->
+                    <div class="accordion-item card">
+                        <h3 class="card-title">🔗 Group Members (Many-to-Many)</h3>
+                        <form id="form-member" class="input-group">
+                            <select id="select-member-group" required>
+                                <option value="">-- Select Group --</option>
+                            </select>
+                            <select id="select-member-user" required>
+                                <option value="">-- Select User --</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary">Add to Group</button>
+                        </form>
+                        <div id="group-members-list" class="members-chip-container">
+                            <p class="placeholder-text">Select a group above to view its members</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MIDDLE PANEL: Transactions & Balance Calculations -->
+            <section class="panel panel-middle">
+                <div class="panel-header">
+                    <h2>💸 Transactions & Ledger</h2>
+                    <p>Select a group to post expenses and view balance states</p>
+                </div>
+
+                <!-- Group Selector -->
+                <div class="group-selector-card card">
+                    <label for="select-active-group"><strong>Active Group Context:</strong></label>
+                    <select id="select-active-group">
+                        <option value="">-- Choose a group to analyze --</option>
+                    </select>
+                </div>
+
+                <div id="group-details-area" class="disabled-state">
+                    <!-- BALANCES CONTAINER -->
+                    <div class="card balances-card">
+                        <h3 class="card-title">📊 Group Balances (Computed via Views & Joins)</h3>
+                        <p class="section-desc">Queried from <code>v_group_balances</code> using aggregation & outer joins</p>
+                        <div class="balances-grid" id="balances-list">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- MINIMIZED SETTLEMENTS -->
+                    <div class="card debt-simplification-card">
+                        <h3 class="card-title">💡 Debt Simplification (Splitwise Algorithm)</h3>
+                        <p class="section-desc">Calculated by resolving net balances in fewest possible transactions</p>
+                        <div class="settlements-suggestions" id="simplification-list">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- ADD EXPENSE (Demonstrates Database Transactions) -->
+                    <div class="card expense-card">
+                        <h3 class="card-title">➕ Add Expense (ACID Transaction)</h3>
+                        <p class="section-desc">Inserts into <code>expenses</code> and <code>expense_splits</code> atomically</p>
+                        <form id="form-expense">
+                            <div class="form-row">
+                                <div class="form-col">
+                                    <label for="expense-desc">Description</label>
+                                    <input type="text" id="expense-desc" placeholder="e.g., Dinner, Uber, Rent" required>
+                                </div>
+                                <div class="form-col">
+                                    <label for="expense-amount">Amount ($)</label>
+                                    <input type="number" id="expense-amount" step="0.01" min="0.01" placeholder="0.00" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-col">
+                                    <label for="expense-payer">Paid By</label>
+                                    <select id="expense-payer" required>
+                                        <!-- Members dropdown -->
+                                    </select>
+                                </div>
+                                <div class="form-col flex-center">
+                                    <label class="checkbox-container">
+                                        <input type="checkbox" id="expense-split-equal" checked>
+                                        <span class="checkmark"></span>
+                                        Split Equally
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="splits-wrapper">
+                                <h4>Splits Distribution (DML Rows):</h4>
+                                <div id="splits-container" class="splits-list">
+                                    <!-- Dynamic list of checkboxes + share inputs -->
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success btn-block">Post Expense & Write Splits</button>
+                        </form>
+                    </div>
+
+                    <!-- SETTLE UP FORM -->
+                    <div class="card settle-card">
+                        <h3 class="card-title">🤝 Settle Up Balance</h3>
+                        <p class="section-desc">Inserts settlement record into <code>settlements</code> table</p>
+                        <form id="form-settle">
+                            <div class="form-row">
+                                <div class="form-col">
+                                    <label for="settle-payer">Payer (Who Pays)</label>
+                                    <select id="settle-payer" required></select>
+                                </div>
+                                <div class="form-col">
+                                    <label for="settle-payee">Payee (Who gets Paid)</label>
+                                    <select id="settle-payee" required></select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-col">
+                                    <label for="settle-amount">Amount ($)</label>
+                                    <input type="number" id="settle-amount" step="0.01" min="0.01" placeholder="0.00" required>
+                                </div>
+                                <div class="form-col flex-end">
+                                    <button type="submit" class="btn btn-primary btn-block">Record Settlement</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- EXPENSES & SETTLEMENTS LEDGER LISTS -->
+                    <div class="card ledger-card">
+                        <div class="ledger-tabs">
+                            <button id="tab-expenses-btn" class="ledger-tab active">Expenses Log</button>
+                            <button id="tab-settlements-btn" class="ledger-tab">Settlements Log</button>
+                        </div>
+                        <div class="ledger-content">
+                            <div id="ledger-expenses-list" class="ledger-pane active">
+                                <!-- Expenses table/list -->
+                            </div>
+                            <div id="ledger-settlements-list" class="ledger-pane">
+                                <!-- Settlements list -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="group-empty-placeholder" class="card empty-group-placeholder">
+                    <div class="icon">💡</div>
+                    <h3>No Active Group Context</h3>
+                    <p>Select a group from the dropdown list above to begin posting expenses, view transaction journals, check balance calculations, and inspect query plan optimizations.</p>
+                </div>
+            </section>
+
+            <!-- RIGHT PANEL: DBMS Engine Console -->
+            <section class="panel panel-right dbms-console-panel">
+                <div class="panel-header">
+                    <h2>💻 DBMS Engine Console</h2>
+                    <p>Analyze query statements, indexing strategies, and execution plans</p>
+                </div>
+
+                <div class="console-tabs">
+                    <button id="tab-sql-logs-btn" class="console-tab active">⚡ SQL Execution Log</button>
+                    <button id="tab-playground-btn" class="console-tab">📝 SQL Playground</button>
+                </div>
+
+                <div class="console-content">
+                    
+                    <!-- Tab 1: SQL Execution Log -->
+                    <div id="console-sql-logs" class="console-pane active">
+                        <div class="console-options">
+                            <span>Showing last 50 database statements</span>
+                            <button id="btn-clear-logs" class="btn btn-secondary btn-small">Clear View</button>
+                        </div>
+                        <div id="sql-logs-container" class="logs-feed">
+                            <!-- Executed SQL rows here -->
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: SQL Playground -->
+                    <div id="console-playground" class="console-pane">
+                        <div class="playground-intro">
+                            <p>Write raw SQL queries against <strong>splitwise.db</strong>. You can perform <code>SELECT</code>, <code>INSERT</code>, or queries on view tables.</p>
+                        </div>
+                        <div class="playground-editor">
+                            <textarea id="sql-query-input" placeholder="SELECT * FROM v_group_balances WHERE net_balance > 0;"></textarea>
+                            <div class="editor-actions">
+                                <div class="quick-queries">
+                                    <button class="btn-quick-sql" data-sql="SELECT * FROM users;">Users</button>
+                                    <button class="btn-quick-sql" data-sql="SELECT * FROM groups;">Groups</button>
+                                    <button class="btn-quick-sql" data-sql="SELECT * FROM expenses;">Expenses</button>
+                                    <button class="btn-quick-sql" data-sql="SELECT * FROM expense_splits;">Splits</button>
+                                    <button class="btn-quick-sql" data-sql="SELECT * FROM settlements;">Settlements</button>
+                                </div>
+                                <button id="btn-run-query" class="btn btn-success">▶ Run Query</button>
+                            </div>
+                        </div>
+                        
+                        <div id="playground-result-area" class="hidden">
+                            <div class="result-summary">
+                                <span id="query-status-indicator"></span>
+                                <span id="query-meta-stats"></span>
+                            </div>
+                            
+                            <h4>Query Plan Optimization:</h4>
+                            <pre class="plan-output" id="query-explain-plan"></pre>
+
+                            <h4>Output dataset:</h4>
+                            <div class="playground-table-container">
+                                <table id="playground-results-table">
+                                    <thead></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- SCHEMA MODAL -->
+    <div id="schema-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Database Schema Definition (DDL & Seed)</h3>
+                <button id="btn-close-schema" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <pre><code id="schema-code-block" class="language-sql"></code></pre>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
